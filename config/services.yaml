@@ -1,0 +1,39 @@
+parameters:
+    fileUploadDirectory: '%kernel.project_dir%/uploads/file'
+
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\Doctrine\Listener\User\PasswordHasherListener:
+        tags:
+            - { name: 'doctrine.orm.entity_listener', event: 'prePersist', entity: 'App\Entity\User' }
+
+    App\Doctrine\Listener\Screen\QRCodeKeyGeneratorListener:
+        tags:
+            - { name: 'doctrine.orm.entity_listener', event: 'prePersist', entity: 'App\Entity\Screen' }
+
+    App\Kernel\Listener\HttpExceptionListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception }
+
+    App\Business\FileBusiness:
+        arguments:
+            $fileUploadDirectory: '%fileUploadDirectory%'
+
+    Symfony\Component\Serializer\Normalizer\ObjectNormalizer:
+        calls:
+            - ['setSerializer', ['@serializer']]
+        arguments:
+            $defaultContext:
+                !php/const Symfony\Component\Serializer\Normalizer\AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER: '@App\Serializer\ReferenceHandler\EntityReferenceHandler'
+                !php/const Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer::ENABLE_MAX_DEPTH: true

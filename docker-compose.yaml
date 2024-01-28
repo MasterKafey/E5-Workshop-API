@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+
+    api.e5:
+        container_name: api.e5
+        build:
+            dockerfile: .docker/build/Dockerfile
+            context: .
+        ports:
+            - 80:80
+        environment:
+            APP_ENV: dev
+            DATABASE_HOST: database.e5
+            DATABASE_NAME: ${DATABASE_NAME:-e5}
+            DATABASE_USER: ${DATABASE_USER:-e5}
+            DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+        volumes:
+            - ./volumes/api/upload:/var/www/html/upload
+        networks:
+            - database
+
+    database.e5:
+        image: mariadb:${DATABASE_VERSION:-10.11.6}
+        container_name: database.e5
+        ports:
+            - "3306:3306"
+        environment:
+            MARIADB_RANDOM_ROOT_PASSWORD: true
+            MARIADB_DATABASE: ${DATABASE_NAME:-e5}
+            MARIADB_USER: ${DATABASE_USER:-e5}
+            MARIADB_PASSWORD: ${DATABASE_PASSWORD}
+        volumes:
+            - ./volumes/database/data:/var/lib/mysql
+        networks:
+            - database
+
+networks:
+    database:
