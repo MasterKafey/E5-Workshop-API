@@ -10,16 +10,17 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\Serializer;
 
 #[Route(path: '/screen')]
 class ScreenController extends AbstractController
 {
     #[IsGranted('ROLE_USER')]
     #[Route(path: '/create', name: 'app_screen_create', methods: [Request::METHOD_POST])]
-    public function create(Request $request, EntityManagerInterface $entityManager, ObjectNormalizer $normalizer): JsonResponse
+    public function create(Request $request, EntityManagerInterface $entityManager): Response
     {
         $screen = new Screen();
         $form = $this->createForm(CreateScreenType::class, $screen);
@@ -35,38 +36,35 @@ class ScreenController extends AbstractController
         $entityManager->persist($screen);
         $entityManager->flush();
 
-        return $this->json([
-            'result' => true,
-            'data' => $normalizer->normalize($screen),
-        ]);
+        return $this->forward(self::class . '::show', ['screen' => $screen]);
     }
 
     #[IsGranted('ROLE_USER')]
     #[Route(path: '/', name: 'app_screen_list')]
-    public function list(EntityManagerInterface $entityManager, ObjectNormalizer $normalizer): JsonResponse
+    public function list(EntityManagerInterface $entityManager, Serializer $serializer): JsonResponse
     {
         $screens = $entityManager->getRepository(Screen::class)->findAll();
 
         return $this->json([
             'result' => true,
-            'data' => array_map(function (Screen $screen) use ($normalizer) {
-                return $normalizer->normalize($screen);
+            'data' => array_map(function (Screen $screen) use ($serializer) {
+                return $serializer->normalize($screen);
             }, $screens),
         ]);
     }
 
     #[Route(path: '/{qrCodeKey}', name: 'app_screen_show', methods: [Request::METHOD_GET])]
-    public function show(Screen $screen, ObjectNormalizer $normalizer): JsonResponse
+    public function show(Screen $screen, Serializer $serializer): JsonResponse
     {
         return $this->json([
             'result' => true,
-            'data' => $normalizer->normalize($screen),
+            'data' => $serializer->normalize($screen),
         ]);
     }
 
     #[IsGranted('ROLE_USER')]
     #[Route(path: '/{id}/update', name: 'app_screen_update', methods: [Request::METHOD_PUT])]
-    public function update(Request $request, Screen $screen, EntityManagerInterface $entityManager): JsonResponse
+    public function update(Request $request, Screen $screen, EntityManagerInterface $entityManager): Response
     {
         $form = $this->createForm(UpdateScreenType::class, $screen);
         $form->submit($request->toArray());
@@ -80,14 +78,7 @@ class ScreenController extends AbstractController
 
         $entityManager->flush();
 
-        return $this->json([
-            'result' => true,
-            'data' => [
-                'id' => $screen->getId(),
-                'name' => $screen->getName(),
-                'qr-code-key' => $screen->getQrCodeKey(),
-            ]
-        ]);
+        return $this->forward(self::class . '::show', ['screen' => $screen]);
     }
 
     #[IsGranted('ROLE_USER')]

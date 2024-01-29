@@ -22,6 +22,10 @@ services:
         tags:
             - { name: 'doctrine.orm.entity_listener', event: 'prePersist', entity: 'App\Entity\Screen' }
 
+    App\Doctrine\Listener\ItemArticleComment\CreationCommentListener:
+        tags:
+            - { name: 'doctrine.orm.entity_listener', event: 'prePersist', entity: 'App\Entity\ItemArticleComment' }
+
     App\Kernel\Listener\HttpExceptionListener:
         tags:
             - { name: kernel.event_listener, event: kernel.exception }
@@ -31,9 +35,18 @@ services:
             $fileUploadDirectory: '%fileUploadDirectory%'
 
     Symfony\Component\Serializer\Normalizer\ObjectNormalizer:
-        calls:
-            - ['setSerializer', ['@serializer']]
         arguments:
             $defaultContext:
                 !php/const Symfony\Component\Serializer\Normalizer\AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER: '@App\Serializer\ReferenceHandler\EntityReferenceHandler'
                 !php/const Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer::ENABLE_MAX_DEPTH: true
+
+    Symfony\Component\Serializer\Normalizer\DateTimeNormalizer:
+        arguments:
+            $defaultContext:
+                !php/const Symfony\Component\Serializer\Normalizer\DateTimeNormalizer::FORMAT_KEY: !php/const \DateTime::ATOM
+
+    Symfony\Component\Serializer\Serializer:
+        arguments:
+            $normalizers:
+                - '@Symfony\Component\Serializer\Normalizer\DateTimeNormalizer'
+                - '@Symfony\Component\Serializer\Normalizer\ObjectNormalizer'

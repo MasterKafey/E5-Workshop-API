@@ -19,10 +19,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 
 #[Route(path: '/item')]
@@ -100,25 +96,26 @@ class ItemController extends AbstractController
     }
 
     #[Route('/{id}', methods: [Request::METHOD_GET])]
-    public function show(Item $item, ObjectNormalizer $normalizer): Response
+    public function show(Item $item, Serializer $serializer): Response
     {
 
         return $this->json([
             'result' => true,
-            'data' => $normalizer->normalize($item),
+            'data' => $serializer->normalize($item),
         ]);
     }
 
+    #[IsGranted('ROLE_USER')]
     #[Route(path: '/', methods: [Request::METHOD_POST, Request::METHOD_GET])]
-    public function list(Request $request, EntityManagerInterface $entityManager, ObjectNormalizer $normalizer): JsonResponse
+    public function list(Request $request, EntityManagerInterface $entityManager, Serializer $serializer): JsonResponse
     {
         $model = new ListItemModel();
         $form = $this->createForm(ListItemType::class, $model);
         $form->submit($request->toArray());
 
         $result = $entityManager->getRepository(Item::class)->search($model);
-        $data = array_map(function ($entity) use ($normalizer) {
-            return $normalizer->normalize($entity);
+        $data = array_map(function ($entity) use ($serializer) {
+            return $serializer->normalize($entity);
         }, $result);
 
         return $this->json([
